@@ -1,87 +1,27 @@
-import os, logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
-from telegram.error import BadRequest
+import os
+from telegram import Update, WebAppInfo, MenuButtonWebApp
+from telegram.ext import Application, CommandHandler, ContextTypes
 
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 TOKEN = os.getenv("BOT_TOKEN")
 
+# 这里是你的黑屏网页地址。等会按我下面的步骤部署好 GitHub Pages 后，把地址填到这里。
+WEB_APP_URL = "https://gsvegetable.github.io/gs-robot/"
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data.clear()
-    keyboard = [
-        [InlineKeyboardButton("数学验证", callback_data="v1")],
-        [InlineKeyboardButton("颜色验证", callback_data="v2")],
-        [InlineKeyboardButton("逻辑判断", callback_data="v3")],
-        [InlineKeyboardButton("顺序点击", callback_data="v4")],
-        [InlineKeyboardButton("反向识别", callback_data="v5")]
-    ]
-    await update.message.reply_text("请选择一种人机验证方式：", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_text("机器人已启动！请看看左下角的紫色菜单按钮。")
 
-async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    data = query.data
-    user_data = context.user_data
-
-    try:
-        if data in ["v1", "v2", "v3", "v4", "v5"]:
-            if data == "v1":
-                kb = [[InlineKeyboardButton("4", callback_data="m4"), InlineKeyboardButton("5", callback_data="m5")],
-                      [InlineKeyboardButton("6", callback_data="m6"), InlineKeyboardButton("7", callback_data="m7")]]
-                await query.edit_message_text("问题：2 + 3 = ？ 请选择正确结果：", reply_markup=InlineKeyboardMarkup(kb))
-                user_data['stage'] = 'math'
-            elif data == "v2":
-                kb = [[InlineKeyboardButton("红色", callback_data="c_red"), InlineKeyboardButton("蓝色", callback_data="c_blue")],
-                      [InlineKeyboardButton("绿色", callback_data="c_green"), InlineKeyboardButton("黄色", callback_data="c_yellow")]]
-                await query.edit_message_text("问题：苹果是什么颜色？", reply_markup=InlineKeyboardMarkup(kb))
-                user_data['stage'] = 'color'
-            elif data == "v3":
-                kb = [[InlineKeyboardButton("对", callback_data="l_true"), InlineKeyboardButton("错", callback_data="l_false")]]
-                await query.edit_message_text("问题：1+1=3，对不对？", reply_markup=InlineKeyboardMarkup(kb))
-                user_data['stage'] = 'logic'
-            elif data == "v4":
-                kb = [[InlineKeyboardButton("A", callback_data="seq_a"), InlineKeyboardButton("B", callback_data="seq_b"), InlineKeyboardButton("C", callback_data="seq_c")]]
-                await query.edit_message_text("步骤 1/2：请先点击按钮 C", reply_markup=InlineKeyboardMarkup(kb))
-                user_data['stage'] = 'seq'; user_data['seq_step'] = 1
-            elif data == "v5":
-                kb = [[InlineKeyboardButton("苹果", callback_data="r_apple"), InlineKeyboardButton("香蕉", callback_data="r_banana")],
-                      [InlineKeyboardButton("黄瓜", callback_data="r_cucumber"), InlineKeyboardButton("橘子", callback_data="r_orange")]]
-                await query.edit_message_text("问题：以下哪一项不属于水果？", reply_markup=InlineKeyboardMarkup(kb))
-                user_data['stage'] = 'reverse'
-
-        else:
-            stage = user_data.get('stage')
-            if stage == 'math':
-                if data == "m5": await query.edit_message_text("✅ 验证通过！你已成功解锁。")
-                else: await query.edit_message_text("❌ 验证失败，请发送 /start 重新尝试。")
-            elif stage == 'color':
-                if data == "c_red": await query.edit_message_text("✅ 验证通过！你已成功解锁。")
-                else: await query.edit_message_text("❌ 验证失败，请发送 /start 重新尝试。")
-            elif stage == 'logic':
-                if data == "l_false": await query.edit_message_text("✅ 验证通过！你已成功解锁。")
-                else: await query.edit_message_text("❌ 验证失败，请发送 /start 重新尝试。")
-            elif stage == 'seq':
-                step = user_data.get('seq_step')
-                if step == 1 and data == "seq_c":
-                    user_data['seq_step'] = 2
-                    kb = [[InlineKeyboardButton("A", callback_data="seq_a"), InlineKeyboardButton("B", callback_data="seq_b"), InlineKeyboardButton("C", callback_data="seq_c")]]
-                    await query.edit_message_text("步骤 2/2：现在请点击按钮 A", reply_markup=InlineKeyboardMarkup(kb))
-                elif step == 2 and data == "seq_a":
-                    await query.edit_message_text("✅ 验证通过！你已成功解锁。")
-                else:
-                    await query.edit_message_text("❌ 顺序错误，验证失败。请发送 /start 重新尝试。")
-            elif stage == 'reverse':
-                if data == "r_cucumber": await query.edit_message_text("✅ 验证通过！你已成功解锁。")
-                else: await query.edit_message_text("❌ 验证失败，请发送 /start 重新尝试。")
-            else:
-                await query.edit_message_text("⛔ 页面已过期，请发送 /start 重新开始。")
-    except BadRequest:
-        pass
+async def post_init(application: Application):
+    # 核心代码：把左侧菜单按钮变成一个紫色的“迷你小程序”入口
+    await application.bot.set_chat_menu_button(
+        menu_button=MenuButtonWebApp(
+            text="打开黑屏程序",
+            web_app=WebAppInfo(url=WEB_APP_URL)
+        )
+    )
 
 def main():
-    app = Application.builder().token(TOKEN).build()
+    app = Application.builder().token(TOKEN).post_init(post_init).build()
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(button_click))
     print("Bot started...")
     app.run_polling()
 
