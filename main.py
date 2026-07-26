@@ -3,9 +3,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 from telegram.error import BadRequest
 
-# 开启日志，方便你在 Railway 里排查
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
-
 TOKEN = os.getenv("BOT_TOKEN")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -26,33 +24,31 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_data = context.user_data
 
     try:
-        # --- 菜单阶段 ---
         if data in ["v1", "v2", "v3", "v4", "v5"]:
             if data == "v1":
-                kb = [[InlineKeyboardButton("4", c="m4"), InlineKeyboardButton("5", c="m5")],
-                      [InlineKeyboardButton("6", c="m6"), InlineKeyboardButton("7", c="m7")]]
+                kb = [[InlineKeyboardButton("4", callback_data="m4"), InlineKeyboardButton("5", callback_data="m5")],
+                      [InlineKeyboardButton("6", callback_data="m6"), InlineKeyboardButton("7", callback_data="m7")]]
                 await query.edit_message_text("问题：2 + 3 = ？ 请选择正确结果：", reply_markup=InlineKeyboardMarkup(kb))
                 user_data['stage'] = 'math'
             elif data == "v2":
-                kb = [[InlineKeyboardButton("红色", c="c_red"), InlineKeyboardButton("蓝色", c="c_blue")],
-                      [InlineKeyboardButton("绿色", c="c_green"), InlineKeyboardButton("黄色", c="c_yellow")]]
+                kb = [[InlineKeyboardButton("红色", callback_data="c_red"), InlineKeyboardButton("蓝色", callback_data="c_blue")],
+                      [InlineKeyboardButton("绿色", callback_data="c_green"), InlineKeyboardButton("黄色", callback_data="c_yellow")]]
                 await query.edit_message_text("问题：苹果是什么颜色？", reply_markup=InlineKeyboardMarkup(kb))
                 user_data['stage'] = 'color'
             elif data == "v3":
-                kb = [[InlineKeyboardButton("对", c="l_true"), InlineKeyboardButton("错", c="l_false")]]
+                kb = [[InlineKeyboardButton("对", callback_data="l_true"), InlineKeyboardButton("错", callback_data="l_false")]]
                 await query.edit_message_text("问题：1+1=3，对不对？", reply_markup=InlineKeyboardMarkup(kb))
                 user_data['stage'] = 'logic'
             elif data == "v4":
-                kb = [[InlineKeyboardButton("A", c="seq_a"), InlineKeyboardButton("B", c="seq_b"), InlineKeyboardButton("C", c="seq_c")]]
+                kb = [[InlineKeyboardButton("A", callback_data="seq_a"), InlineKeyboardButton("B", callback_data="seq_b"), InlineKeyboardButton("C", callback_data="seq_c")]]
                 await query.edit_message_text("步骤 1/2：请先点击按钮 C", reply_markup=InlineKeyboardMarkup(kb))
                 user_data['stage'] = 'seq'; user_data['seq_step'] = 1
             elif data == "v5":
-                kb = [[InlineKeyboardButton("苹果", c="r_apple"), InlineKeyboardButton("香蕉", c="r_banana")],
-                      [InlineKeyboardButton("黄瓜", c="r_cucumber"), InlineKeyboardButton("橘子", c="r_orange")]]
+                kb = [[InlineKeyboardButton("苹果", callback_data="r_apple"), InlineKeyboardButton("香蕉", callback_data="r_banana")],
+                      [InlineKeyboardButton("黄瓜", callback_data="r_cucumber"), InlineKeyboardButton("橘子", callback_data="r_orange")]]
                 await query.edit_message_text("问题：以下哪一项不属于水果？", reply_markup=InlineKeyboardMarkup(kb))
                 user_data['stage'] = 'reverse'
 
-        # --- 结果判定阶段 ---
         else:
             stage = user_data.get('stage')
             if stage == 'math':
@@ -68,7 +64,7 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 step = user_data.get('seq_step')
                 if step == 1 and data == "seq_c":
                     user_data['seq_step'] = 2
-                    kb = [[InlineKeyboardButton("A", c="seq_a"), InlineKeyboardButton("B", c="seq_b"), InlineKeyboardButton("C", c="seq_c")]]
+                    kb = [[InlineKeyboardButton("A", callback_data="seq_a"), InlineKeyboardButton("B", callback_data="seq_b"), InlineKeyboardButton("C", callback_data="seq_c")]]
                     await query.edit_message_text("步骤 2/2：现在请点击按钮 A", reply_markup=InlineKeyboardMarkup(kb))
                 elif step == 2 and data == "seq_a":
                     await query.edit_message_text("✅ 验证通过！你已成功解锁。")
@@ -80,7 +76,6 @@ async def button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 await query.edit_message_text("⛔ 页面已过期，请发送 /start 重新开始。")
     except BadRequest:
-        # 拦截“消息未修改”的错误，防止机器人崩溃重启
         pass
 
 def main():
